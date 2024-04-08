@@ -1,5 +1,5 @@
 import docker
-import multiprocessing, socket, time
+import multiprocessing, socket, time, os
 
 client = docker.from_env()
 
@@ -45,7 +45,6 @@ def runContainers(ncont=1, ncpus_per_cont=None, start_port=10000):
             client.containers.run('pmoired', name=name, cpuset_cpus=cpuset_cpus,
                                   ports={'8888/tcp':start_port+i}, detach=True)
 
-
 def stopContainers(R=None):
     """
     will stop all running instance of pmoired Docker containers if R==None. Alternatively, one
@@ -64,6 +63,50 @@ def stopContainers(R=None):
             C[k].stop()
     return
 
+def backupToTar(cont=None):
+    C = listPmoired()
+    if type(cont) is int:
+        cont = '/pmoired'+str(cont)
+    if not cont.startswith('/'):
+        cont = '/'+cont
+    if not cont in C:
+        print('failed: unknown container "'+cont+'"')
+        info()
+        return False
+    tarname = '_'.join([cont[1:], time.asctime().replace(' ', '_')])+'.tar'
+    print('backing up in', tarname)
+    with open(tarname, 'wb') as f:
+        bits, stat = C[cont].get_archive('/PMOIRED_examples/')
+        for chunk in bits:
+            f.write(chunk)
+    return True
+    
+def restoreFromTar(filename, cont=None, backup=False):
+    """
+    filename: a tar file copy of "PMOIRED_examples/"
+    container should be a name of a running container, e.g. '
+    """
+    if not os.path.exists(filename):
+        print('failed,', filename, 'does not exist')
+        return False
+    C = listPmoired()
+    if cont is None:
+        cont = '/'+os.path.basename(filename).split('_')[0]
+    if not cont in C:
+        print('failed: unknown container "'+cont+'"')
+        info()
+        return False
+    if backup:
+        backupToTar(cont)
+    print('restoring', cont, end=' ')
+    with open(filename, 'rb') as f:
+        test = C[cont].put_archive('/', f)
+    if test:
+        print('OK')
+    else:
+        print('failed')
+    return True
+            
 def removeContainers(R=None, backup=True):
     """
     will remove all stopped/exited instance of pmoired Docker containers if R==None. Alternatively, one
@@ -81,12 +124,7 @@ def removeContainers(R=None, backup=True):
     for k in sorted(K):
         if C[k].status=='exited':
             if backup:
-                filename = '_'.join([k[1:], time.asctime().replace(' ', '_')])+'.tar'
-                print('backing up in', filename, end=', ')
-                with open(filename, 'wb') as f:
-                    bits, stat = C[k].get_archive('/PMOIRED_examples/')
-                    for chunk in bits:
-                       f.write(chunk)
+                backupToTar(k)
             print('removing', k)
             C[k].remove()
         else:
