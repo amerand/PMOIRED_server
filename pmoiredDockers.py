@@ -1,5 +1,5 @@
 import docker
-import multiprocessing, socket
+import multiprocessing, socket, time
 
 client = docker.from_env()
 
@@ -58,17 +58,19 @@ def stopContainers(R=None):
         K = filter(lambda x: x.startswith('/pmoired'), C.keys())
     else:
         K = filter(lambda x: x.startswith('/pmoired') and int(x.split('/pmoired')[1]) in R, C.keys())
-    for k in K:
+    for k in sorted(K):
         if C[k].status!='runing':
             print('stopping', k)
             C[k].stop()
     return
 
-def removeContainers(R=None):
+def removeContainers(R=None, backup=True):
     """
     will remove all stopped/exited instance of pmoired Docker containers if R==None. Alternatively, one
     can give a list if port integers for the port to be stopped. E.g. R=[8889, 8891] will remove 
     'pmoired8889' and 'pmoired8891', if they exist and have been stopped.
+
+    backup=True will copy the content of 'PMOIRED_examples/' in a tar file.
     """
     C = listPmoired()
     if R is None:
@@ -76,8 +78,15 @@ def removeContainers(R=None):
         K = filter(lambda x: x.startswith('/pmoired'), C.keys())
     else:
         K = filter(lambda x: x.startswith('/pmoired') and int(x.split('/pmoired')[1]) in R, C.keys())
-    for k in K:
+    for k in sorted(K):
         if C[k].status=='exited':
+            if backup:
+                filename = '_'.join([k[1:], time.asctime().replace(' ', '_')])+'.tar'
+                print('backing up in', filename, end=', ')
+                with open(filename, 'wb') as f:
+                    bits, stat = C[k].get_archive('/PMOIRED_examples/')
+                    for chunk in bits:
+                       f.write(chunk)
             print('removing', k)
             C[k].remove()
         else:

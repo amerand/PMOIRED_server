@@ -41,12 +41,14 @@ stopping /pmoired9001
 stopping /pmoired9003
 stopping /pmoired9000
 >>> pmoiredDockers.removeContainers()
-removing /pmoired9003
-removing /pmoired9002
-removing /pmoired9001
-removing /pmoired9000
+backing up in pmoired9003_Mon_Apr__8_18:28:13_2024.tar, removing /pmoired9003
+backing up in pmoired9002_Mon_Apr__8_18:28:13_2024.tar, removing /pmoired9002
+backing up in pmoired9001_Mon_Apr__8_18:28:13_2024.tar, removing /pmoired9001
+backing up in pmoired9000_Mon_Apr__8_18:28:13_2024.tar, removing /pmoired9000
 ```
-After importing, the call to `runContainers` starts 4 instances with a maximum of 6 CPUs each on ports 9000..9003. The Jupyer-lab sessions are accessible at the listed (local) addresses. Note that the load is spread amongst all avalaible CPUs (here 12) with equal priorities. The calls to `stopContainers` first stops specific containers referenced by their ports. The call without arguments stops all remaining instances. After containers are stopped, calling `runContainers` will restart them (***without changing the ports or CPUs assignments***). The last call to  `removeContainers` removes the containers: ***if you remove a container, the modifications to the notebooks are lost even if you re-run it***. As for stopping containers, you can pass a list of ports corresponding to the containers to be removed. If you are lost, you can use `info()` to know which instances are running or were stopped. running `docker stats` in a terminal is a better way to monitor containers, as it show real-time CPU and memory usage.
+After importing, the call to `runContainers` starts 4 instances with a maximum of 6 CPUs each on ports 9000..9003. The Jupyer-lab sessions are accessible at the listed (local) addresses. Note that the load is spread amongst all avalaible CPUs (here 12) with equal priorities. The calls to `stopContainers` first stops specific containers referenced by their ports. The call without arguments stops all remaining instances. After containers are stopped, calling `runContainers` will restart them (***without changing the ports or CPUs assignments***). The last call to  `removeContainers` removes the containers, making a backup of the whole directory *PMOIRED_examples/* in a tar file. As for stopping containers, you can pass a list of ports corresponding to the containers to be removed. You can remove containers without doing a backup by passing `backup=False`.
+
+If you are lost, you can use `info()` to know which instances are running or were stopped. running `docker stats` in a terminal is a better way to monitor containers, as it show real-time CPU and memory usage.
 
 ## Limitations
 - ***if you stop then remove a container, the modifications to the notebooks are lost, even if you re-run it***.  
